@@ -110,15 +110,17 @@ def testChacha(vectores):
     cipherText = encryptor.update(msg) + encryptor.finalize()
     encryption_time_end = process_time()
     encryption_time = encryption_time_end - encryption_time_start 
-
     decryption_time_start = process_time()
     plaintext = decryptor.update(cipherText) + decryptor.finalize()
     decryption_time_end = process_time()
     decryption_time = decryption_time_end - decryption_time_start
+    print(plaintext)
     return (encryption_time,decryption_time)
     
 def testECB(vectores):
     msg = vectores
+    padding_length = 16 - (len(msg) % 16)
+    msg += bytes([padding_length]) * padding_length
     cipher = Cipher(algorithms.AES(KEY_256), mode=modes.ECB(), backend=default_backend())
     encryptor = cipher.encryptor()
     decryptor = cipher.decryptor()
@@ -128,22 +130,43 @@ def testECB(vectores):
     encryption_time_end = process_time()
     encryption_time = encryption_time_end - encryption_time_start 
 
-    decryption_time_start = process_time()
+
     decryption_time_start = process_time()
     plaintext = decryptor.update(cipherText) + decryptor.finalize()
     decryption_time_end = process_time()
     decryption_time = decryption_time_end - decryption_time_start
+
+    padding_length = plaintext[-1]
+    print(plaintext[:-padding_length])
+    return (encryption_time,decryption_time)
+
+def testGCM(vectores):
+    msg = vectores
+    cipher = Cipher(algorithms.AES(KEY_256), mode=modes.GCM(NONCE), backend=default_backend())
+    encryptor = cipher.encryptor()
+    encryption_time_start = process_time()
+    cipherText = encryptor.update(msg) + encryptor.finalize()
+    encryption_time_end = process_time()
+    encryption_time = encryption_time_end - encryption_time_start 
+    tag = encryptor.tag
+    decryptor = cipher.decryptor()
+    decryptor.authenticate_additional_data(encryptor.tag)
+    decryption_time_start = process_time()
+    plaintext = decryptor.update(cipherText) + decryptor.finalize()
+    decryption_time_end = process_time()
+    decryption_time = decryption_time_end - decryption_time_start
+    print(plaintext)
     return (encryption_time,decryption_time)
 
 
-
-
 def getData():
-    #AES_GCM = Cipher(algorithms.AES(KEY_256), mode=modes.GCM(NONCE), backend=default_backend())
     #TODO: tomar los vectores
     #v1 = []
     v1 = b"Vectores de prueba xd, ahora pura basurasjfaoi 231,123 123 123 "
-    testChacha(v1)
+    data = []
+    data.append(testChacha(v1))
+    data.append(testECB(v1))
+    data.append(testGCM(v1))
 
 
 
