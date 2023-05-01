@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 from time import process_time
 from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
+from Crypto.Cipher import PKCS1_OAEP, AES
 from Crypto import Random
 from Crypto.Signature import pss
 from Crypto.Hash import SHA256
@@ -20,7 +20,6 @@ import os
 import base64
 import hashlib #Used for SHA2 and SHA3 Algorithms 
 import binascii
-import rsa
 #pip install pycryptodome
 #pip install rsa
 
@@ -142,17 +141,16 @@ def testECB(vectores):
 
 def testGCM(vectores):
     msg = vectores
-    cipher = Cipher(algorithms.AES(KEY_256), mode=modes.GCM(NONCE), backend=default_backend())
-    encryptor = cipher.encryptor()
+    cipher = AES.new(KEY_256, AES.MODE_GCM,NONCE)
+
     encryption_time_start = process_time()
-    cipherText = encryptor.update(msg) + encryptor.finalize()
+    cipherText, tag = cipher.encrypt_and_digest(msg)
     encryption_time_end = process_time()
     encryption_time = encryption_time_end - encryption_time_start 
-    tag = encryptor.tag
-    decryptor = cipher.decryptor()
-    decryptor.authenticate_additional_data(encryptor.tag)
+
+    cipher = AES.new(KEY_256, AES.MODE_GCM,NONCE)
     decryption_time_start = process_time()
-    plaintext = decryptor.update(cipherText) + decryptor.finalize()
+    plaintext = cipher.decrypt(cipherText)
     decryption_time_end = process_time()
     decryption_time = decryption_time_end - decryption_time_start
     print(plaintext)
@@ -167,6 +165,8 @@ def getData():
     data.append(testChacha(v1))
     data.append(testECB(v1))
     data.append(testGCM(v1))
+
+    print(data)
 
 
 
