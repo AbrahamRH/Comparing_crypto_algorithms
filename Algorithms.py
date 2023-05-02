@@ -63,7 +63,7 @@ def testECDSA(vectores):
         for j in range(len(vector["nonces"])):
             pt = vector["plaintexts"][j]
 
-            sig_time_start = process_time()
+            sig_time_start = process_time_ns()
     
             # Signing
             sig = PRIVKEY_ECDSA.sign_deterministic(
@@ -72,17 +72,17 @@ def testECDSA(vectores):
                 sigencode=sigencode_der
                 )
 
-            sig_time_end = process_time()
+            sig_time_end = process_time_ns()
             sig_time = sig_time_end - sig_time_start
 
             sig_times.append(sig_time)
 
             # Verifying
-            ver_time_start = process_time()
+            ver_time_start = process_time_ns()
             
             ret = PUBKEY_ECDSA.verify(sig, pt, sha256, sigdecode=sigdecode_der)
 
-            ver_time_end = process_time()
+            ver_time_end = process_time_ns()
             ver_time = ver_time_end - sig_time_start
             ver_times.append(ver_time)
 
@@ -114,20 +114,20 @@ def testEdDSA(vectores):
         for j in range(len(vector["nonces"])):
             pt = vector["plaintexts"][j]
 
-            sig_time_start = process_time()
+            sig_time_start = process_time_ns()
 
 
             # Signing
             sig = PRIVKEY_EDDSA.sign(pt, encoding='hex')
 
-            sig_time_end = process_time()
+            sig_time_end = process_time_ns()
             sig_time = sig_time_end - sig_time_start
             sig_times.append(sig_time)
 
             # Verifying
-            ver_time_start = process_time()
+            ver_time_start = process_time_ns()
             PUBKEY_EDDSA.verify(sig, pt, encoding='hex')
-            ver_time_end = process_time()
+            ver_time_end = process_time_ns()
             ver_time = ver_time_end - sig_time_start
             ver_times.append(ver_time)
 
@@ -143,7 +143,7 @@ def RSA_PSS(vectores):
     print("="*23)
     print("--- Prueba RSA_PSS ---")
     print("="*23)
-    test_vectors = vectores.generate_test_vectors(6, 100000)
+    test_vectors = vectores.generate_test_vectors(6, 100)
     promedio_encryption = {}
     promedio_decryption = {}
     for i, vector in enumerate(test_vectors):
@@ -152,13 +152,13 @@ def RSA_PSS(vectores):
         decryption_times = []
         for j in range(len(vector["nonces"])):
             msg = vector["plaintexts"][j]
-            encryption_time_start = process_time()
+            encryption_time_start = process_time_ns()
             key = RSA.generate(2048)
             h = SHA256.new(msg)
             signature = pss.new(key).sign(h)
-            encryption_time_end = process_time()
+            encryption_time_end = process_time_ns()
             encryption_time = encryption_time_end - encryption_time_start
-            decryption_time_start = process_time()
+            decryption_time_start = process_time_ns()
             #key = RSA.import_key(open('pubkey.der').read())
             h = SHA256.new(msg)
             verifier = pss.new(key)
@@ -167,12 +167,12 @@ def RSA_PSS(vectores):
                 print ("The signature is authentic.")
             except (ValueError, TypeError):
                 print ("The signature is not authentic.")
-            decryption_time_end = process_time()
+            decryption_time_end = process_time_ns()
             decryption_time = decryption_time_end - decryption_time_start
         promedio_encryption[i+1] = sum(encryption_times)/len(encryption_times)
         promedio_decryption[i+1] = sum(decryption_times)/len(decryption_times)
-        print(f"Tiempo promedio de cifrado del vector de prueba #{i+1}: {promedio_encryption[i+1]:.6f} segundos")
-        print(f"Tiempo promedio de descifrado del vector de prueba #{i+1}: {promedio_decryption[i+1]:.6f} segundos")
+        print(f"Tiempo promedio de cifrado del vector de prueba #{i+1}: {promedio_encryption[i+1]:.6f} nano segundos")
+        print(f"Tiempo promedio de descifrado del vector de prueba #{i+1}: {promedio_decryption[i+1]:.6f} nano segundos")
     return (promedio_encryption,promedio_decryption)
 
 
@@ -180,7 +180,7 @@ def RSA_OAEP(vectores):
     print("="*23)
     print("--- Prueba RSA_OAEP ---")
     print("="*23)
-    test_vectors = vectores.generate_test_vectors(6, 100000)
+    test_vectors = vectores.generate_test_vectors(6, 100)
     promedio_encryption = {}
     promedio_decryption = {}
     for i, vector in enumerate(test_vectors):
@@ -190,7 +190,7 @@ def RSA_OAEP(vectores):
         for j in range(len(vector["nonces"])):
             msg = vector["plaintexts"][j]
             #Encryption
-            encryption_time_start = process_time()
+            encryption_time_start = process_time_ns()
             key = RSA.generate(2048)
             private_key = key.export_key('PEM')
             public_key = key.publickey().exportKey('PEM')
@@ -198,30 +198,30 @@ def RSA_OAEP(vectores):
             rsa_public_key = RSA.importKey(public_key)
             rsa_public_key = PKCS1_OAEP.new(rsa_public_key)
             cypherText = rsa_public_key.encrypt(msg)
-            encryption_time_end = process_time()
+            encryption_time_end = process_time_ns()
             encryption_time = encryption_time_end - encryption_time_start 
             #Decryption
-            decryption_time_start = process_time()
+            decryption_time_start = process_time_ns()
             rsa_private_key = RSA.importKey(private_key)
             rsa_private_key = PKCS1_OAEP.new(rsa_private_key)
             decrypted_text = rsa_private_key.decrypt(cypherText)
-            decryption_time_end = process_time()
+            decryption_time_end = process_time_ns()
             decryption_time = decryption_time_end - decryption_time_start
             encryption_times.append(encryption_time)
             decryption_times.append(decryption_time)
         promedio_encryption[i+1] = sum(encryption_times)/len(encryption_times)
         promedio_decryption[i+1] = sum(decryption_times)/len(decryption_times)
-        print(f"Tiempo promedio de cifrado del vector de prueba #{i+1}: {promedio_encryption[i+1]:.6f} segundos")
-        print(f"Tiempo promedio de descifrado del vector de prueba #{i+1}: {promedio_decryption[i+1]:.6f} segundos")
+        print(f"Tiempo promedio de cifrado del vector de prueba #{i+1}: {promedio_encryption[i+1]:.6f} nano segundos")
+        print(f"Tiempo promedio de descifrado del vector de prueba #{i+1}: {promedio_decryption[i+1]:.6f} nano segundos")
     return (promedio_encryption,promedio_decryption)
 
 def testSHA2(vectores):
     encryption_times = []
     for vector in vectores:
         msg = b''.join(vector['data'])
-        encryption_time_start = process_time()
+        encryption_time_start = process_time_ns()
         cypherText = hashlib.sha512(msg).hexdigest()
-        encryption_time_end = process_time()
+        encryption_time_end = process_time_ns()
         encryption_time = encryption_time_end - encryption_time_start
         decryption_time = 0
         encryption_times.append(encryption_time)
@@ -234,9 +234,9 @@ def testSHA3(vectores):
 
     for vector in vectores:
         msg = b''.join(vector['data'])
-        encryption_time_start = process_time()
+        encryption_time_start = process_time_ns()
         cypherText = hashlib.sha3_512(msg).hexdigest()
-        encryption_time_end = process_time()
+        encryption_time_end = process_time_ns()
         encryption_time = encryption_time_end - encryption_time_start
         decryption_time = 0
         encryption_times.append(encryption_time)
@@ -244,6 +244,9 @@ def testSHA3(vectores):
     return encryption_times, [0] * len(vectores)
 
 def testScrypt(vectores):
+    print("="*23)
+    print("--- Prueba Scrypt ---")
+    print("="*23)
     encryption_times = []
     decryption_times = []
     for vector in vectores:
@@ -254,11 +257,11 @@ def testScrypt(vectores):
         p = 1
         maxmem = 0
         dklen = 32
-        encryption_time_start = process_time()
+        encryption_time_start = process_time_ns()
         cypherText = hashlib.scrypt(msg, salt=salt, n=n, r=r, p=p, maxmem=maxmem, dklen=dklen)
-        encryption_time_end = process_time()
+        encryption_time_end = process_time_ns()
         encryption_time = encryption_time_end - encryption_time_start
-        decryption_time_start = process_time()
+        decryption_time_start = process_time_ns()
         # It is not possible to decrypt a message encrypted with scrypt
         decryption_time = 0
         decryption_times.append(decryption_time)
@@ -376,6 +379,7 @@ def testGCM(vectores):
 
 
 def getData():
+    '''
     data_encryption, data_decryption = testChacha(vectores)
     print("")
     data_encryption, data_decryption = testECB(vectores)
@@ -386,6 +390,7 @@ def getData():
     print("")
     data_encryption, data_decryption = testSHA3(vectores)
     print("")
+    '''
     data_encryption, data_decryption = RSA_OAEP(vectores)
     print("")
     data_encryption, data_decryption = RSA_PSS(vectores)
@@ -394,10 +399,6 @@ def getData():
     print("")
     data_encryption, data_decryption = testEdDSA(vectores)
     test_vectors = vectores.generate_hash_vectors(6, 100000)
-    print("")
-    sha3_encryption_times, sha3_decryption_times = testSHA3(test_vectors)
-    print("")
-    sha2_encryption_times, sha2_decryption_times = testSHA2(test_vectors)
     print("")
     scrypt_encryption_times, scrypt_decryption_times = testScrypt(test_vectors)
 
