@@ -20,6 +20,7 @@ import os
 import base64
 import hashlib #Used for SHA2 and SHA3 Algorithms 
 import binascii
+import vectores
 #pip install pycryptodome
 #pip install rsa
 
@@ -101,43 +102,80 @@ def testSHA2(vectores):
 
 
 def testChacha(vectores):
-    msg = vectores
-    cipher = Cipher(algorithms.ChaCha20(KEY_256,NONCE), mode=None, backend=default_backend())
-    encryptor = cipher.encryptor()
-    decryptor = cipher.decryptor()
-    encryption_time_start = process_time()
-    cipherText = encryptor.update(msg) + encryptor.finalize()
-    encryption_time_end = process_time()
-    encryption_time = encryption_time_end - encryption_time_start 
-    decryption_time_start = process_time()
-    plaintext = decryptor.update(cipherText) + decryptor.finalize()
-    decryption_time_end = process_time()
-    decryption_time = decryption_time_end - decryption_time_start
-    print(plaintext)
-    return (encryption_time,decryption_time)
+    print("="*23)
+    print("--- Prueba ChaCha20 ---")
+    print("="*23)
+    test_vectors = vectores.generate_test_vectors(6, 100000)
+    promedio_encryption = {}
+    promedio_decryption = {}
+    for i, vector in enumerate(test_vectors):
+        print(f"Vector de prueba #{i+1}:")
+        encryption_times = []
+        decryption_times = []
+        for j in range(len(vector["nonces"])):
+            key = vector["key"][j]
+            plaintext = vector["plaintexts"][j]
+            nonce = vector["nonces"][j]
+            cipher = Cipher(algorithms.ChaCha20(key, nonce), mode=None, backend=default_backend())
+            encryptor = cipher.encryptor()
+            decryptor = cipher.decryptor()
+
+            encryption_time_start = process_time()
+            cipherText = encryptor.update(plaintext) + encryptor.finalize()
+            encryption_time_end = process_time()
+            encryption_time = encryption_time_end - encryption_time_start 
+            encryption_times.append(encryption_time)
+
+            decryption_time_start = process_time()
+            decryptedText = decryptor.update(cipherText) + decryptor.finalize()
+            decryption_time_end = process_time()
+            decryption_time = decryption_time_end - decryption_time_start
+            decryption_times.append(decryption_time)
+
+        promedio_encryption[i+1] = sum(encryption_times)/len(encryption_times)
+        promedio_decryption[i+1] = sum(decryption_times)/len(decryption_times)
+        print(f"Tiempo promedio de cifrado del vector de prueba #{i+1}: {promedio_encryption[i+1]:.6f} segundos")
+        print(f"Tiempo promedio de descifrado del vector de prueba #{i+1}: {promedio_decryption[i+1]:.6f} segundos")
+    return (promedio_encryption,promedio_decryption)
     
 def testECB(vectores):
-    msg = vectores
-    padding_length = 16 - (len(msg) % 16)
-    msg += bytes([padding_length]) * padding_length
-    cipher = Cipher(algorithms.AES(KEY_256), mode=modes.ECB(), backend=default_backend())
-    encryptor = cipher.encryptor()
-    decryptor = cipher.decryptor()
+    print("="*23)
+    print("--- Prueba AES ECB ---")
+    print("="*23)
+    test_vectors = vectores.generate_test_vectors(6, 100000)
+    promedio_encryption = {}
+    promedio_decryption = {}
+    for i, vector in enumerate(test_vectors):
+        print(f"Vector de prueba #{i+1}:")
+        encryption_times = []
+        decryption_times = []
+        for j in range(len(vector["nonces"])):
+            padding_length = 16 - (len(vector["key"][j]) % 16)
+            key = vector["key"][j]
+            plaintext = vector["plaintexts"][j]
+            nonce = vector["nonces"][j]
+            cipher = Cipher(algorithms.AES(key), mode=modes.ECB(), backend=default_backend())
+            encryptor = cipher.encryptor()
+            decryptor = cipher.decryptor()
 
-    encryption_time_start = process_time()
-    cipherText = encryptor.update(msg) + encryptor.finalize()
-    encryption_time_end = process_time()
-    encryption_time = encryption_time_end - encryption_time_start 
+            encryption_time_start = process_time()
+            cipherText = encryptor.update(plaintext) + encryptor.finalize()
+            encryption_time_end = process_time()
+            encryption_time = encryption_time_end - encryption_time_start 
+            encryption_times.append(encryption_time)
 
 
-    decryption_time_start = process_time()
-    plaintext = decryptor.update(cipherText) + decryptor.finalize()
-    decryption_time_end = process_time()
-    decryption_time = decryption_time_end - decryption_time_start
+            decryption_time_start = process_time()
+            plaintext = decryptor.update(cipherText) + decryptor.finalize()
+            decryption_time_end = process_time()
+            decryption_time = decryption_time_end - decryption_time_start
+            decryption_times.append(decryption_time)
 
-    padding_length = plaintext[-1]
-    print(plaintext[:-padding_length])
-    return (encryption_time,decryption_time)
+        promedio_encryption[i+1] = sum(encryption_times)/len(encryption_times)
+        promedio_decryption[i+1] = sum(decryption_times)/len(decryption_times)
+        print(f"Tiempo promedio de cifrado del vector de prueba #{i+1}: {promedio_encryption[i+1]:.6f} segundos")
+        print(f"Tiempo promedio de descifrado del vector de prueba #{i+1}: {promedio_decryption[i+1]:.6f} segundos")
+    return (promedio_encryption,promedio_decryption)
 
 def testGCM(vectores):
     msg = vectores
@@ -158,15 +196,11 @@ def testGCM(vectores):
 
 
 def getData():
-    #TODO: tomar los vectores
-    #v1 = []
-    v1 = b"Vectores de prueba xd, ahora pura basurasjfaoi 231,123 123 123 "
-    data = []
-    data.append(testChacha(v1))
-    data.append(testECB(v1))
-    data.append(testGCM(v1))
+    data_encryption, data_decryption = testChacha(vectores)
+    print("")
+    data_encryption, data_decryption = testECB(vectores)
 
-    print(data)
+
 
 
 
