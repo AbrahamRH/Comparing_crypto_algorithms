@@ -215,68 +215,56 @@ def RSA_OAEP(vectores):
         print(f"Tiempo promedio de descifrado del vector de prueba #{i+1}: {promedio_decryption[i+1]:.6f} segundos")
     return (promedio_encryption,promedio_decryption)
 
-def testSHA3(vectores):
-    print("="*23)
-    print("--- Prueba SHA3 ---")
-    print("="*23)
-    test_vectors = vectores.generate_test_vectors(6, 100000)
-    promedio_encryption = {}
-    promedio_decryption = {}
-    for i, vector in enumerate(test_vectors):
-        print(f"Vector de prueba #{i+1}:")
-        encryption_times = []
-        decryption_times = []
-        for j in range(len(vector["nonces"])):
-            msg = vector["plaintexts"][j]
-            encryption_time_start = process_time()
-            #msg = bytes(msg, 'utf-8')
-            cypherText = hashlib.sha3_512()
-            cypherText = cypherText.update(msg)
-            encryption_time_end = process_time()
-            encryption_time = encryption_time_end - encryption_time_start 
-            decryption_time_start = process_time()
-            #It is not possible to decrypt a message crphered with SHA3
-            #cypherText = cypherText.hexdigest()
-            decryption_time = 0
-            encryption_times.append(encryption_time)
-            decryption_times.append(decryption_time)
-        promedio_encryption[i+1] = sum(encryption_times)/len(encryption_times)
-        promedio_decryption[i+1] = sum(decryption_times)/len(decryption_times)
-        print(f"Tiempo promedio de cifrado del vector de prueba #{i+1}: {promedio_encryption[i+1]:.6f} segundos")
-        print(f"Tiempo promedio de descifrado del vector de prueba #{i+1}: {promedio_decryption[i+1]:.6f} segundos")
-    return (promedio_encryption,promedio_decryption)
-
 def testSHA2(vectores):
-    print("="*23)
-    print("--- Prueba SHA2 ---")
-    print("="*23)
-    test_vectors = vectores.generate_test_vectors(6, 100000)
-    promedio_encryption = {}
-    promedio_decryption = {}
-    for i, vector in enumerate(test_vectors):
-        print(f"Vector de prueba #{i+1}:")
-        encryption_times = []
-        decryption_times = []
-        for j in range(len(vector["nonces"])):
-            msg = vector["plaintexts"][j]
-            #msg = bytes(msg, encoding='UTF-8')
-            encryption_time_start = process_time()
-            cypherText = hashlib.sha512()
-            cypherText = cypherText.update(msg)
-            encryption_time_end = process_time()
-            encryption_time = encryption_time_end - encryption_time_start 
-            decryption_time_start = process_time()
-            #It is not possible to decrypt a message cyphered with SHA2
-            #cypherText = cypherText.hexdigest()
-            decryption_time = 0
-            encryption_times.append(encryption_time)
-            decryption_times.append(decryption_time)
-        promedio_encryption[i+1] = sum(encryption_times)/len(encryption_times)
-        promedio_decryption[i+1] = sum(decryption_times)/len(decryption_times)
-        print(f"Tiempo promedio de cifrado del vector de prueba #{i+1}: {promedio_encryption[i+1]:.6f} segundos")
-        print(f"Tiempo promedio de descifrado del vector de prueba #{i+1}: {promedio_decryption[i+1]:.6f} segundos")
-    return (promedio_encryption,promedio_decryption)
+    encryption_times = []
+    for vector in vectores:
+        msg = b''.join(vector['data'])
+        encryption_time_start = process_time()
+        cypherText = hashlib.sha512(msg).hexdigest()
+        encryption_time_end = process_time()
+        encryption_time = encryption_time_end - encryption_time_start
+        decryption_time = 0
+        encryption_times.append(encryption_time)
+    print(f"Tiempos de hashing de SHA-512 por vector: {encryption_times}")
+    return encryption_times, [0] * len(vectores)
 
+
+def testSHA3(vectores):
+    encryption_times = []
+
+    for vector in vectores:
+        msg = b''.join(vector['data'])
+        encryption_time_start = process_time()
+        cypherText = hashlib.sha3_512(msg).hexdigest()
+        encryption_time_end = process_time()
+        encryption_time = encryption_time_end - encryption_time_start
+        decryption_time = 0
+        encryption_times.append(encryption_time)
+    print(f"Tiempos de hashing de Scrypt SHA3-512 por vector: {encryption_times}")
+    return encryption_times, [0] * len(vectores)
+
+def testScrypt(vectores):
+    encryption_times = []
+    decryption_times = []
+    for vector in vectores:
+        msg = b''.join(vector['data'])
+        salt = os.urandom(16)
+        n = 512
+        r = 8
+        p = 1
+        maxmem = 0
+        dklen = 32
+        encryption_time_start = process_time()
+        cypherText = hashlib.scrypt(msg, salt=salt, n=n, r=r, p=p, maxmem=maxmem, dklen=dklen)
+        encryption_time_end = process_time()
+        encryption_time = encryption_time_end - encryption_time_start
+        decryption_time_start = process_time()
+        # It is not possible to decrypt a message encrypted with scrypt
+        decryption_time = 0
+        decryption_times.append(decryption_time)
+        encryption_times.append(encryption_time)
+    print(f"Tiempos de hashing de Scrypt por vector: {encryption_times}")
+    return encryption_times, decryption_times
 
 def testChacha(vectores):
     print("="*23)
@@ -405,7 +393,13 @@ def getData():
     data_encryption, data_decryption = testECDSA(vectores)
     print("")
     data_encryption, data_decryption = testEdDSA(vectores)
-
+    test_vectors = vectores.generate_hash_vectors(6, 100000)
+    print("")
+    sha3_encryption_times, sha3_decryption_times = testSHA3(test_vectors)
+    print("")
+    sha2_encryption_times, sha2_decryption_times = testSHA2(test_vectors)
+    print("")
+    scrypt_encryption_times, scrypt_decryption_times = testScrypt(test_vectors)
 
 
 if __name__ == "__main__":
