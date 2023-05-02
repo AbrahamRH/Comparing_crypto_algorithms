@@ -151,7 +151,7 @@ def RSA_PSS(vectores):
         encryption_times = []
         decryption_times = []
         for j in range(len(vector["nonces"])):
-            msg = vectores
+            msg = vector["plaintexts"][j]
             encryption_time_start = process_time()
             key = RSA.generate(2048)
             h = SHA256.new(msg)
