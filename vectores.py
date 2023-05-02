@@ -3,6 +3,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 
 def generate_test_vectors(num_vectors, num_elements):
+    print("Generando vectores de prueba... ")
     test_vectors = []
     
     # Generar vectores de prueba
