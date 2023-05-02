@@ -15,6 +15,16 @@ from Crypto import Random
 from Crypto.Signature import pss
 from Crypto.Hash import SHA256
 
+# ECDSA
+from hashlib import sha256
+from ecdsa import SigningKey
+from ecdsa.util import sigencode_der, sigdecode_der
+from ecdsa import BRAINPOOLP512r1
+from ecdsa import BadSignatureError
+
+# EdDSA
+import ed25519
+
 import rsa
 import os
 import base64
@@ -28,6 +38,64 @@ import vectores
 KEY_256 = os.urandom(32)
 KEY_512 = os.urandom(64)
 NONCE = os.urandom(16)
+
+
+# Vectores debe venir serializado
+def testECDSA(vectores):
+
+    PRIVKEY_ECDSA = SigningKey.generate(curve=BRAINPOOLP512r1)
+    PUBKEY_ECDSA = PRIVKEY_ECDSA.verifying_key
+    msg = vectores
+    sig_time_start = process_time()
+    
+
+    # Signing
+    sig = PRIVKEY_ECDSA.sign_deterministic(
+        msg,
+        hashfunc=sha256,
+        sigencode=sigencode_der
+        )
+
+    sig_time_end = process_time()
+    sig_time = sig_time_end - sig_time_start
+
+    # Verifying
+    ver_time_start = process_time()
+    try:
+        ret = PUBKEY_ECDSA.verify(sig, msg, sha256, sigdecode=sigdecode_der)
+        assert ret
+        print("Valid signature")
+    except BadSignatureError:
+        print("Incorrect signature")
+
+    ver_time_end = process_time()
+    ver_time = ver_time_end - sig_time_start
+    return(sig_time, ver_time)
+
+# Vectores debe venir serializado
+def testEdDSA(vectores):
+    PRIVKEY_EDDSA, PUBKEY_EDDSA = ed25519.create_keypair()
+    msg = vectores
+    sig_time_start = process_time()
+
+    # Signing
+    sig = PRIVKEY_EDDSA.sign(msg, encoding='hex')
+
+    sig_time_end = process_time()
+    sig_time = sig_time_end - sig_time_start
+
+    # Verifying
+    ver_time_start = process_time()
+    try:
+        PUBKEY_EDDSA.verify(sig, msg, encoding='hex')
+        print("Valid signature")
+    except BadSignatureError:
+        print("Incorrect signature")
+
+    ver_time_end = process_time()
+    ver_time = ver_time_end - sig_time_start
+    return(sig_time, ver_time)
+
 
 def RSA_PSS(vectores):
     msg = vectores
@@ -190,8 +258,7 @@ def testGCM(vectores):
             key = vector["key"][j]
             nonce = vector["nonces"][j]
             plaintext = vector["plaintexts"][j]
-            cipher = AES.new(key, AES.MODE_GCM,NONCE)
-
+            cipher = AES.new(key, AES.MODE_GCM,NONCE)    
             encryption_time_start = process_time_ns()
             cipherText, tag = cipher.encrypt_and_digest(plaintext)
             encryption_time_end = process_time_ns()
@@ -217,10 +284,10 @@ def getData():
     data_encryption, data_decryption = testECB(vectores)
     print("")
     data_encryption, data_decryption = testGCM(vectores)
-
-
-
-
+    print("")
+    data_encryption, data_decryption = testECDSA(vectores)
+    print("")
+    data_encryption, data_decryption = testEdDSA(vectores)
 
 
 
