@@ -42,59 +42,101 @@ NONCE = os.urandom(16)
 
 # Vectores debe venir serializado
 def testECDSA(vectores):
+    print("="*23)   
+    print("--- Prueba ECDSA ---")
+    print("="*23)
+    print("Generando vectores de prueba...")
+    test_vectors = vectores.generate_test_vectors(6, 100000)
 
+    ## Generación de llaves
     PRIVKEY_ECDSA = SigningKey.generate(curve=BRAINPOOLP512r1)
     PUBKEY_ECDSA = PRIVKEY_ECDSA.verifying_key
-    msg = vectores
-    sig_time_start = process_time()
     
+    promedio_signing = {}
+    promedio_verifying = {}
 
-    # Signing
-    sig = PRIVKEY_ECDSA.sign_deterministic(
-        msg,
-        hashfunc=sha256,
-        sigencode=sigencode_der
-        )
+    
+    for i, vector in enumerate(test_vectors):
+        print(f"Vector de prueba #{i+1}:")
+        sig_times = []
+        ver_times = []
+        for j in range(len(vector["nonces"])):
+            pt = vector["plaintexts"][j]
 
-    sig_time_end = process_time()
-    sig_time = sig_time_end - sig_time_start
+            sig_time_start = process_time()
+    
+            # Signing
+            sig = PRIVKEY_ECDSA.sign_deterministic(
+                pt,
+                hashfunc=sha256,
+                sigencode=sigencode_der
+                )
 
-    # Verifying
-    ver_time_start = process_time()
-    try:
-        ret = PUBKEY_ECDSA.verify(sig, msg, sha256, sigdecode=sigdecode_der)
-        assert ret
-        print("Valid signature")
-    except BadSignatureError:
-        print("Incorrect signature")
+            sig_time_end = process_time()
+            sig_time = sig_time_end - sig_time_start
 
-    ver_time_end = process_time()
-    ver_time = ver_time_end - sig_time_start
-    return(sig_time, ver_time)
+            sig_times.append(sig_time)
+
+            # Verifying
+            ver_time_start = process_time()
+            
+            ret = PUBKEY_ECDSA.verify(sig, pt, sha256, sigdecode=sigdecode_der)
+
+            ver_time_end = process_time()
+            ver_time = ver_time_end - sig_time_start
+            ver_times.append(ver_time)
+
+        promedio_signing[i+1] = sum(sig_times)/len(sig_times)
+        promedio_verifying[i+1] = sum(ver_times)/len(ver_times)
+        print(f"Tiempo promedio de firmado del vector de prueba #{i+1}: {promedio_signing[i+1]} nano segundos")
+        print(f"Tiempo promedio de verificación del vector de prueba #{i+1}: {promedio_verifying[i+1]} nano segundos")
+
+
+    return(promedio_signing, promedio_verifying)
 
 # Vectores debe venir serializado
 def testEdDSA(vectores):
+    print("="*23)   
+    print("--- Prueba EdDSA ---")
+    print("="*23)
+    print("Generando vectores de prueba...")
+    test_vectors = vectores.generate_test_vectors(6, 100000)
+
     PRIVKEY_EDDSA, PUBKEY_EDDSA = ed25519.create_keypair()
-    msg = vectores
-    sig_time_start = process_time()
+  
+    promedio_signing = {}
+    promedio_verifying = {}
 
-    # Signing
-    sig = PRIVKEY_EDDSA.sign(msg, encoding='hex')
+    for i, vector in enumerate(test_vectors):
+        print(f"Vector de prueba #{i+1}:")
+        sig_times = []
+        ver_times = []
+        for j in range(len(vector["nonces"])):
+            pt = vector["plaintexts"][j]
 
-    sig_time_end = process_time()
-    sig_time = sig_time_end - sig_time_start
+            sig_time_start = process_time()
 
-    # Verifying
-    ver_time_start = process_time()
-    try:
-        PUBKEY_EDDSA.verify(sig, msg, encoding='hex')
-        print("Valid signature")
-    except BadSignatureError:
-        print("Incorrect signature")
 
-    ver_time_end = process_time()
-    ver_time = ver_time_end - sig_time_start
-    return(sig_time, ver_time)
+            # Signing
+            sig = PRIVKEY_EDDSA.sign(pt, encoding='hex')
+
+            sig_time_end = process_time()
+            sig_time = sig_time_end - sig_time_start
+            sig_times.append(sig_time)
+
+            # Verifying
+            ver_time_start = process_time()
+            PUBKEY_EDDSA.verify(sig, pt, encoding='hex')
+            ver_time_end = process_time()
+            ver_time = ver_time_end - sig_time_start
+            ver_times.append(ver_time)
+
+        promedio_signing[i+1] = sum(sig_times)/len(sig_times)
+        promedio_verifying[i+1] = sum(ver_times)/len(ver_times)
+        print(f"Tiempo promedio de firmado del vector de prueba #{i+1}: {promedio_signing[i+1]} nano segundos")
+        print(f"Tiempo promedio de verificación del vector de prueba #{i+1}: {promedio_verifying[i+1]} nano segundos")
+
+    return(promedio_signing, promedio_verifying)
 
 
 def RSA_PSS(vectores):
