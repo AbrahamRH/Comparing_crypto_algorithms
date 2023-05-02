@@ -258,8 +258,7 @@ def testGCM(vectores):
             key = vector["key"][j]
             nonce = vector["nonces"][j]
             plaintext = vector["plaintexts"][j]
-            cipher = AES.new(key, AES.MODE_GCM,NONCE)
-
+            cipher = AES.new(key, AES.MODE_GCM,NONCE)    
             encryption_time_start = process_time_ns()
             cipherText, tag = cipher.encrypt_and_digest(plaintext)
             encryption_time_end = process_time_ns()
@@ -289,11 +288,6 @@ def getData():
     data_encryption, data_decryption = testECDSA(vectores)
     print("")
     data_encryption, data_decryption = testEdDSA(vectores)
-
-
-
-
-
 
 
 
